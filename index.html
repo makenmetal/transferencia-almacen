@@ -103,9 +103,17 @@
 
       const inicializar = async () => {
         setLoading(true);
-        // La URL ya viene hardcodeada. Permite override si admin la cambió vía config.
+        // La URL ya viene hardcodeada. Permite override si admin la cambió vía config,
+        // pero valida que sea una URL de Apps Script válida.
         const urlGuardada = storage.get('config_url');
-        const url = urlGuardada && urlGuardada.trim() ? urlGuardada : APPS_SCRIPT_URL_DEFAULT;
+        const esValida = urlGuardada && urlGuardada.trim() &&
+          urlGuardada.includes('script.google.com') &&
+          urlGuardada.includes('/exec');
+        const url = esValida ? urlGuardada.trim() : APPS_SCRIPT_URL_DEFAULT;
+        // Si la guardada no es válida, la limpiamos y usamos la default
+        if (urlGuardada && !esValida) {
+          storage.set('config_url', APPS_SCRIPT_URL_DEFAULT);
+        }
         setConfigUrl(url);
         const sol = storage.get('solicitudes');
         if (sol) { try { setSolicitudes(JSON.parse(sol)); } catch (e) {} }
@@ -154,25 +162,40 @@
         if (!configUrl) { mostrarMensaje('Sin configuración', 'error'); return; }
         setActualizandoEstados(true);
         try {
-          const res = await fetch(configUrl + '?action=estados');
+          // Lee las últimas 10 solicitudes del empleado directamente del Sheet
+          const url = `${configUrl}?action=mis_solicitudes&empleado=${encodeURIComponent(empleadoNum)}`;
+          const res = await fetch(url);
           if (!res.ok) throw new Error('Error lectura');
           const data = await res.json();
-          const estados = data.estados || {};
-          const actualizadas = solicitudes.map(s => {
-            const e = estados[s.folio];
-            if (e) {
-              return { ...s, procesado: e.procesado, fechaProcesado: e.fechaProcesado };
-            }
-            return s;
-          });
-          setSolicitudes(actualizadas);
-          storage.set('solicitudes', JSON.stringify(actualizadas));
-          mostrarMensaje('✓ Estados actualizados', 'ok');
+          const delSheet = data.solicitudes || [];
+          setSolicitudes(delSheet);
+          storage.set('solicitudes', JSON.stringify(delSheet));
+          mostrarMensaje(`✓ ${delSheet.length} solicitud(es) actualizadas`, 'ok');
         } catch (err) {
-          mostrarMensaje('Error al actualizar estados', 'error');
+          mostrarMensaje('Error al consultar Sheet', 'error');
         }
         setActualizandoEstados(false);
       };
+
+      // Carga automática al entrar a "Mis solicitudes"
+      const cargarMisSolicitudes = async () => {
+        if (!configUrl || !empleadoNum) return;
+        try {
+          const url = `${configUrl}?action=mis_solicitudes&empleado=${encodeURIComponent(empleadoNum)}`;
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const data = await res.json();
+          const delSheet = data.solicitudes || [];
+          setSolicitudes(delSheet);
+          storage.set('solicitudes', JSON.stringify(delSheet));
+        } catch (err) {}
+      };
+
+      useEffect(() => {
+        if (pantalla === 'mis_solicitudes' && empleadoNum) {
+          cargarMisSolicitudes();
+        }
+      }, [pantalla, empleadoNum]);
 
       const mostrarMensaje = (texto, tipo = 'ok') => {
         setMensaje({ texto, tipo });
@@ -297,8 +320,12 @@
         s.descripcion.toLowerCase().includes(skuBusqueda.toLowerCase())
       ).slice(0, 30);
 
+      // Las solicitudes ya vienen filtradas por empleado desde el Sheet,
+      // pero filtramos por si hay datos locales viejos
       const misSolicitudes = solicitudes
-        .filter(s => s.empleado && s.empleado.startsWith(empleadoNum + ' '))
+        .filter(s => s.empleado && (
+          s.empleado.startsWith(empleadoNum + ' ') || s.empleado === empleadoNum
+        ))
         .slice(0, MAX_HISTORIAL);
 
       const esDestinoExterno = destino.toUpperCase().includes('PROCESO EXTERNO');
