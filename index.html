@@ -206,8 +206,16 @@
       };
 
       const generarFolio = () => {
-        const year = new Date().getFullYear();
-        return `SOL-${year}-${String(solicitudes.length + 1).padStart(4, '0')}`;
+        const ahora = new Date();
+        const year = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+        const dia = String(ahora.getDate()).padStart(2, '0');
+        const hora = String(ahora.getHours()).padStart(2, '0');
+        const min = String(ahora.getMinutes()).padStart(2, '0');
+        const seg = String(ahora.getSeconds()).padStart(2, '0');
+        // Formato: SOL-YYYYMMDD-HHMMSS-EMPLEADO
+        // Garantiza unicidad aunque varios operadores envien al mismo tiempo
+        return `SOL-${year}${mes}${dia}-${hora}${min}${seg}-${empleadoNum}`;
       };
 
       const agregarPartida = () => {
