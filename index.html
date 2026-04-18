@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#1e293b" />
   <title>MAKEN METAL - Transferencias</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,10 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    * { touch-action: manipulation; }
+    input, select, textarea { font-size: 16px !important; }
+    button { min-height: 44px; }
   </style>
 </head>
 <body class="bg-slate-100">
@@ -20,29 +23,16 @@
   <script type="text/babel" data-type="module">
     const { useState, useEffect } = React;
 
-    const ALMACENES_DEFAULT = [
-      '01 MATERIA PRIMA',
-      '02 PROCESO DE MAQUINADO',
-      '03 PROCESO EXTERNO',
-      '04 PROCESO DE ACABADO',
-      '05 EMSAMBLES',
-      '06 PRODUCTO TERMINADO',
-      '10 SCRAP',
-    ];
-
-    const SKUS_DEMO = [
-      { codigo: 'MP-001', descripcion: 'Placa acero A36 1/4" x 4x8' },
-      { codigo: 'MP-002', descripcion: 'Perfil PTR 2x2 cal 14 x 6m' },
-    ];
-
-    const PROVEEDORES_DEMO = ['Galvanizados del Norte'];
+    const ALMACENES_DEFAULT = ['01 MATERIA PRIMA', '02 PROCESO DE MAQUINADO', '03 PROCESO EXTERNO', '04 PROCESO DE ACABADO', '05 ENSAMBLES', '06 PRODUCTO TERMINADO', '10 SCRAP'];
+    const SKUS_DEMO = [{ codigo: 'DEMO-001', descripcion: 'Demo (conecta al Sheet)' }];
+    const PROVEEDORES_DEMO = ['Demo'];
     const EMPLEADOS_DEMO = [{ numero: '1234', nombre: 'Demo' }];
+    const PIN_ADMIN = '9473';
+    const MAX_HISTORIAL = 10;
 
-    // Iconos inline SVG (sin librería externa)
+    // Iconos
     const Icon = ({ d, size = 18, className = '' }) => (
-      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        {d}
-      </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
     );
     const IconPackage = (p) => <Icon {...p} d={<><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></>} />;
     const IconSend = (p) => <Icon {...p} d={<><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></>} />;
@@ -55,16 +45,16 @@
     const IconAlert = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></>} />;
     const IconCloud = (p) => <Icon {...p} d={<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 0 1 0 9Z"/>} />;
     const IconCloudOff = (p) => <Icon {...p} d={<><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></>} />;
-    const IconFile = (p) => <Icon {...p} d={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h8M8 9h2"/></>} />;
+    const IconPlus = (p) => <Icon {...p} d={<><path d="M5 12h14"/><path d="M12 5v14"/></>} />;
+    const IconTrash = (p) => <Icon {...p} d={<><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>} />;
+    const IconFlame = (p) => <Icon {...p} d={<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>} />;
+    const IconArrow = (p) => <Icon {...p} d={<><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>} />;
+    const IconBack = (p) => <Icon {...p} d={<><path d="m15 18-6-6 6-6"/></>} />;
+    const IconSearch = (p) => <Icon {...p} d={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />;
 
-    // Storage helpers usando localStorage
     const storage = {
-      get: (key) => {
-        try { return localStorage.getItem('mkm_' + key); } catch (e) { return null; }
-      },
-      set: (key, val) => {
-        try { localStorage.setItem('mkm_' + key, val); return true; } catch (e) { return false; }
-      },
+      get: (k) => { try { return localStorage.getItem('mkm_' + k); } catch (e) { return null; } },
+      set: (k, v) => { try { localStorage.setItem('mkm_' + k, v); return true; } catch (e) { return false; } },
     };
 
     function App() {
@@ -72,6 +62,7 @@
       const [empleadoNum, setEmpleadoNum] = useState('');
       const [empleadoNombre, setEmpleadoNombre] = useState('');
       const [empleadoInput, setEmpleadoInput] = useState('');
+      const [pinInput, setPinInput] = useState('');
 
       const [solicitudes, setSolicitudes] = useState([]);
       const [skus, setSkus] = useState(SKUS_DEMO);
@@ -83,18 +74,27 @@
       const [catalogosOnline, setCatalogosOnline] = useState(false);
       const [loading, setLoading] = useState(true);
       const [sincronizando, setSincronizando] = useState(false);
+      const [actualizandoEstados, setActualizandoEstados] = useState(false);
       const [mensaje, setMensaje] = useState(null);
 
+      // Formulario (cabecera)
       const [origen, setOrigen] = useState('');
       const [destino, setDestino] = useState('');
       const [proveedorSel, setProveedorSel] = useState('');
       const [proveedorLibre, setProveedorLibre] = useState('');
+      const [urgencia, setUrgencia] = useState('NORMAL');
+      const [comentarios, setComentarios] = useState('');
+      const [partidas, setPartidas] = useState([]);
+      const [enviando, setEnviando] = useState(false);
+
+      // Pantalla búsqueda de SKU (pantalla completa)
       const [skuBusqueda, setSkuBusqueda] = useState('');
       const [skuSeleccionado, setSkuSeleccionado] = useState(null);
-      const [cantidad, setCantidad] = useState('');
-      const [saldoOrigen, setSaldoOrigen] = useState('');
-      const [comentarios, setComentarios] = useState('');
-      const [enviando, setEnviando] = useState(false);
+      const [cantidadPartida, setCantidadPartida] = useState('');
+      const [saldoPartida, setSaldoPartida] = useState('');
+
+      // Selectores modales
+      const [modalAlmacen, setModalAlmacen] = useState(null); // 'origen' | 'destino' | null
 
       useEffect(() => { inicializar(); }, []);
 
@@ -102,10 +102,8 @@
         setLoading(true);
         const url = storage.get('config_url') || '';
         setConfigUrl(url);
-
         const sol = storage.get('solicitudes');
         if (sol) { try { setSolicitudes(JSON.parse(sol)); } catch (e) {} }
-
         if (url) await cargarCatalogosDelSheet(url);
         setLoading(false);
       };
@@ -115,17 +113,12 @@
           const res = await fetch(url);
           if (!res.ok) throw new Error('No se pudo leer Sheet');
           const data = await res.json();
-
           if (data.empleados?.length) {
-            const m = data.empleados.filter(e => e.Numero).map(e => ({
-              numero: String(e.Numero).trim(), nombre: String(e.Nombre || '').trim()
-            }));
+            const m = data.empleados.filter(e => e.Numero).map(e => ({ numero: String(e.Numero).trim(), nombre: String(e.Nombre || '').trim() }));
             if (m.length) setEmpleados(m);
           }
           if (data.numerosParte?.length) {
-            const m = data.numerosParte.filter(s => s.Codigo).map(s => ({
-              codigo: String(s.Codigo).trim(), descripcion: String(s.Descripcion || '').trim()
-            }));
+            const m = data.numerosParte.filter(s => s.Codigo).map(s => ({ codigo: String(s.Codigo).trim(), descripcion: String(s.Descripcion || '').trim() }));
             if (m.length) setSkus(m);
           }
           if (data.proveedores?.length) {
@@ -145,11 +138,35 @@
       };
 
       const sincronizarCatalogos = async () => {
-        if (!configUrl) { mostrarMensaje('Configura la URL primero', 'error'); return; }
+        if (!configUrl) { mostrarMensaje('Configura la URL primero (PIN admin)', 'error'); return; }
         setSincronizando(true);
         const ok = await cargarCatalogosDelSheet(configUrl);
         setSincronizando(false);
         mostrarMensaje(ok ? '✓ Catálogos actualizados' : 'No se pudo conectar', ok ? 'ok' : 'error');
+      };
+
+      const actualizarEstados = async () => {
+        if (!configUrl) { mostrarMensaje('Sin configuración', 'error'); return; }
+        setActualizandoEstados(true);
+        try {
+          const res = await fetch(configUrl + '?action=estados');
+          if (!res.ok) throw new Error('Error lectura');
+          const data = await res.json();
+          const estados = data.estados || {};
+          const actualizadas = solicitudes.map(s => {
+            const e = estados[s.folio];
+            if (e) {
+              return { ...s, procesado: e.procesado, fechaProcesado: e.fechaProcesado };
+            }
+            return s;
+          });
+          setSolicitudes(actualizadas);
+          storage.set('solicitudes', JSON.stringify(actualizadas));
+          mostrarMensaje('✓ Estados actualizados', 'ok');
+        } catch (err) {
+          mostrarMensaje('Error al actualizar estados', 'error');
+        }
+        setActualizandoEstados(false);
       };
 
       const mostrarMensaje = (texto, tipo = 'ok') => {
@@ -161,7 +178,7 @@
         const num = empleadoInput.trim();
         if (!num) return mostrarMensaje('Ingresa tu número de empleado', 'error');
         const emp = empleados.find(e => e.numero === num);
-        if (!emp) return mostrarMensaje('Número de empleado no registrado. Pide a oficinas que te agreguen.', 'error');
+        if (!emp) return mostrarMensaje('Número no registrado', 'error');
         setEmpleadoNum(emp.numero);
         setEmpleadoNombre(emp.nombre);
         setPantalla('solicitud');
@@ -174,8 +191,13 @@
 
       const limpiarFormulario = () => {
         setOrigen(''); setDestino(''); setProveedorSel(''); setProveedorLibre('');
-        setSkuBusqueda(''); setSkuSeleccionado(null); setCantidad('');
-        setSaldoOrigen(''); setComentarios('');
+        setUrgencia('NORMAL'); setComentarios(''); setPartidas([]);
+        limpiarPartidaActual();
+      };
+
+      const limpiarPartidaActual = () => {
+        setSkuBusqueda(''); setSkuSeleccionado(null);
+        setCantidadPartida(''); setSaldoPartida('');
       };
 
       const generarFolio = () => {
@@ -183,15 +205,34 @@
         return `SOL-${year}-${String(solicitudes.length + 1).padStart(4, '0')}`;
       };
 
+      const agregarPartida = () => {
+        if (!skuSeleccionado) return mostrarMensaje('Selecciona número de parte', 'error');
+        if (!cantidadPartida || parseFloat(cantidadPartida) <= 0) return mostrarMensaje('Captura cantidad', 'error');
+        if (saldoPartida === '' || parseFloat(saldoPartida) < 0) return mostrarMensaje('Captura saldo en origen', 'error');
+
+        const nuevaPartida = {
+          codigo: skuSeleccionado.codigo,
+          descripcion: skuSeleccionado.descripcion,
+          cantidad: parseFloat(cantidadPartida),
+          saldoOrigen: parseFloat(saldoPartida),
+        };
+        setPartidas([...partidas, nuevaPartida]);
+        limpiarPartidaActual();
+        setPantalla('solicitud');
+        mostrarMensaje('✓ Partida agregada', 'ok');
+      };
+
+      const eliminarPartida = (i) => {
+        setPartidas(partidas.filter((_, idx) => idx !== i));
+      };
+
       const handleEnviar = async () => {
         if (!origen) return mostrarMensaje('Selecciona almacén origen', 'error');
         if (!destino) return mostrarMensaje('Selecciona almacén destino', 'error');
         if (origen === destino) return mostrarMensaje('Origen y destino no pueden ser iguales', 'error');
         const esExterno = destino.toUpperCase().includes('PROCESO EXTERNO');
-        if (esExterno && !proveedorSel && !proveedorLibre) return mostrarMensaje('Selecciona o captura proveedor externo', 'error');
-        if (!skuSeleccionado) return mostrarMensaje('Selecciona número de parte', 'error');
-        if (!cantidad || parseFloat(cantidad) <= 0) return mostrarMensaje('Captura cantidad válida', 'error');
-        if (saldoOrigen === '' || parseFloat(saldoOrigen) < 0) return mostrarMensaje('Captura saldo en origen', 'error');
+        if (esExterno && !proveedorSel && !proveedorLibre) return mostrarMensaje('Selecciona proveedor', 'error');
+        if (partidas.length === 0) return mostrarMensaje('Agrega al menos una partida', 'error');
 
         setEnviando(true);
         const ahora = new Date();
@@ -199,22 +240,22 @@
         const horaStr = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
         const proveedorFinal = esExterno ? (proveedorSel === '__otro__' ? proveedorLibre : proveedorSel) : '';
 
+        const folio = generarFolio();
         const nueva = {
-          folio: generarFolio(),
-          fechaHora: `${fechaStr} ${horaStr}`,
+          folio, fechaHora: `${fechaStr} ${horaStr}`,
           timestamp: ahora.toISOString(),
           empleado: `${empleadoNum} - ${empleadoNombre}`,
           origen, destino,
           proveedorExterno: proveedorFinal,
-          codigo: skuSeleccionado.codigo,
-          descripcion: skuSeleccionado.descripcion,
-          cantidad: parseFloat(cantidad),
-          saldoOrigen: parseFloat(saldoOrigen),
+          partidas,
           comentarios: comentarios.trim(),
+          urgencia,
           procesado: false,
+          fechaProcesado: '',
         };
 
-        const nuevas = [nueva, ...solicitudes];
+        // Mantener solo últimas N
+        const nuevas = [nueva, ...solicitudes].slice(0, MAX_HISTORIAL * 3); // guarda buffer por si varios usuarios
         setSolicitudes(nuevas);
         storage.set('solicitudes', JSON.stringify(nuevas));
 
@@ -225,25 +266,31 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(nueva),
             });
-            mostrarMensaje(`✓ Solicitud ${nueva.folio} enviada`, 'ok');
+            const msg = urgencia === 'URGENTE' ? `🔴 URGENTE ${folio} enviada` : `✓ ${folio} enviada`;
+            mostrarMensaje(msg, 'ok');
           } catch (e) {
-            mostrarMensaje(`Guardada localmente, error al enviar`, 'warn');
+            mostrarMensaje(`Guardada local, error al enviar`, 'warn');
           }
         } else {
-          mostrarMensaje(`Solicitud ${nueva.folio} guardada (offline)`, 'warn');
+          mostrarMensaje(`${folio} guardada (offline)`, 'warn');
         }
         limpiarFormulario();
+        setPantalla('mis_solicitudes');
         setEnviando(false);
       };
 
       const skusFiltrados = skus.filter(s =>
         s.codigo.toLowerCase().includes(skuBusqueda.toLowerCase()) ||
         s.descripcion.toLowerCase().includes(skuBusqueda.toLowerCase())
-      ).slice(0, 8);
+      ).slice(0, 30);
 
-      const misSolicitudes = solicitudes.filter(s => s.empleado && s.empleado.startsWith(empleadoNum + ' '));
+      const misSolicitudes = solicitudes
+        .filter(s => s.empleado && s.empleado.startsWith(empleadoNum + ' '))
+        .slice(0, MAX_HISTORIAL);
+
       const esDestinoExterno = destino.toUpperCase().includes('PROCESO EXTERNO');
 
+      // ============ LOADING ============
       if (loading) {
         return (
           <div className="min-h-screen flex items-center justify-center">
@@ -254,78 +301,121 @@
         );
       }
 
+      // ============ LOGIN ============
       if (pantalla === 'login') {
         return (
           <div className="min-h-screen bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
               <div className="flex items-center justify-center mb-6">
-                <div className="bg-slate-800 text-white rounded-lg p-3 mr-3"><IconPackage size={32} /></div>
+                <div className="bg-slate-800 text-white rounded-xl p-3 mr-3"><IconPackage size={32} /></div>
                 <div>
                   <h1 className="text-2xl font-bold text-slate-800">MAKEN METAL</h1>
-                  <p className="text-sm text-slate-500">Transferencias de Mercancía</p>
+                  <p className="text-sm text-slate-500">Transferencias</p>
                 </div>
               </div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Número de empleado</label>
-              <input type="text" value={empleadoInput} onChange={(e) => setEmpleadoInput(e.target.value)}
+              <label className="block text-base font-medium text-slate-700 mb-2">Número de empleado</label>
+              <input type="tel" inputMode="numeric" pattern="[0-9]*" value={empleadoInput}
+                onChange={(e) => setEmpleadoInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 placeholder="Ej. 1234" autoFocus
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-lg mb-4" />
+                className="w-full px-4 py-4 border-2 border-slate-300 rounded-xl text-xl text-center mb-4" />
               <button onClick={handleLogin}
-                className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2">
-                <IconLogIn size={20} /> Entrar
+                className="w-full bg-slate-800 active:bg-slate-950 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 text-lg">
+                <IconLogIn size={22} /> Entrar
               </button>
-              <div className="mt-4 flex items-center justify-between text-xs">
-                <div className={`flex items-center gap-1 ${catalogosOnline ? 'text-green-600' : 'text-slate-400'}`}>
-                  {catalogosOnline ? <IconCloud size={14} /> : <IconCloudOff size={14} />}
-                  {catalogosOnline ? 'Catálogos sincronizados' : 'Modo offline'}
-                </div>
-                <button onClick={() => setPantalla('config')} className="text-slate-500 hover:text-slate-700 flex items-center gap-1">
-                  <IconSettings size={14} /> Config
+
+              <div className="mt-4 flex items-center justify-between">
+                <button onClick={sincronizarCatalogos} disabled={sincronizando}
+                  className="flex items-center gap-2 text-sm text-slate-600 active:text-slate-900 px-3 py-2">
+                  <IconRefresh size={16} className={sincronizando ? 'animate-spin' : ''} />
+                  {sincronizando ? 'Sincronizando...' : 'Sincronizar catálogos'}
                 </button>
+                <div className={`flex items-center gap-1 text-xs ${catalogosOnline ? 'text-green-600' : 'text-slate-400'}`}>
+                  {catalogosOnline ? <IconCloud size={14} /> : <IconCloudOff size={14} />}
+                  {catalogosOnline ? 'Online' : 'Offline'}
+                </div>
               </div>
+
+              <button onClick={() => { setPinInput(''); setPantalla('admin_pin'); }}
+                className="w-full mt-4 text-xs text-slate-400 py-2">
+                Admin
+              </button>
             </div>
             {mensaje && <Notificacion mensaje={mensaje} />}
           </div>
         );
       }
 
+      // ============ ADMIN PIN ============
+      if (pantalla === 'admin_pin') {
+        return (
+          <div className="min-h-screen bg-slate-100 p-4 flex items-center justify-center">
+            <div className="bg-white rounded-2xl shadow p-6 w-full max-w-md">
+              <div className="flex items-center gap-2 mb-4">
+                <button onClick={() => setPantalla('login')} className="p-2 -ml-2"><IconBack size={22} /></button>
+                <h2 className="text-lg font-bold">Acceso administrador</h2>
+              </div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">PIN</label>
+              <input type="password" inputMode="numeric" value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (pinInput === PIN_ADMIN) { setPinInput(''); setPantalla('config'); }
+                    else mostrarMensaje('PIN incorrecto', 'error');
+                  }
+                }}
+                placeholder="••••" autoFocus
+                className="w-full px-4 py-4 border-2 border-slate-300 rounded-xl text-xl text-center tracking-widest mb-4" />
+              <button onClick={() => {
+                if (pinInput === PIN_ADMIN) { setPinInput(''); setPantalla('config'); }
+                else mostrarMensaje('PIN incorrecto', 'error');
+              }}
+                className="w-full bg-slate-800 active:bg-slate-950 text-white font-semibold py-4 rounded-xl">
+                Entrar
+              </button>
+            </div>
+            {mensaje && <Notificacion mensaje={mensaje} />}
+          </div>
+        );
+      }
+
+      // ============ CONFIG (solo admin) ============
       if (pantalla === 'config') {
         return (
           <div className="min-h-screen bg-slate-100 p-4">
-            <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-6">
+                <button onClick={() => setPantalla('login')} className="p-2 -ml-2"><IconBack size={22} /></button>
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><IconSettings size={22} /> Configuración</h2>
-                <button onClick={() => setPantalla(empleadoNum ? 'solicitud' : 'login')} className="text-slate-500">Cerrar</button>
               </div>
-
               <label className="block text-sm font-medium text-slate-700 mb-2">URL de Google Apps Script</label>
               <input type="text" value={configUrl} onChange={(e) => setConfigUrl(e.target.value)}
-                placeholder="https://script.google.com/macros/s/..../exec"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm" />
-              <div className="mt-2 flex gap-2 flex-wrap">
+                placeholder="https://script.google.com/..."
+                className="w-full px-4 py-3 border-2 border-slate-300 rounded-xl text-sm" />
+              <div className="mt-3 flex gap-2 flex-wrap">
                 <button onClick={async () => {
                   storage.set('config_url', configUrl);
                   mostrarMensaje('URL guardada', 'ok');
                   await cargarCatalogosDelSheet(configUrl);
-                }} className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm">
+                }} className="bg-slate-800 active:bg-slate-950 text-white px-5 py-3 rounded-xl font-medium">
                   Guardar URL
                 </button>
                 <button onClick={sincronizarCatalogos} disabled={sincronizando}
-                  className="border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm flex items-center gap-1">
-                  <IconRefresh size={14} className={sincronizando ? 'animate-spin' : ''} /> Sincronizar
+                  className="border-2 border-slate-300 text-slate-700 px-5 py-3 rounded-xl flex items-center gap-2 font-medium">
+                  <IconRefresh size={16} className={sincronizando ? 'animate-spin' : ''} /> Sincronizar
                 </button>
               </div>
 
-              <div className={`mt-4 p-3 rounded-lg border flex items-center gap-2 text-sm ${catalogosOnline ? 'bg-green-50 border-green-200 text-green-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+              <div className={`mt-4 p-3 rounded-xl border-2 flex items-center gap-2 text-sm ${catalogosOnline ? 'bg-green-50 border-green-200 text-green-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
                 {catalogosOnline ? <IconCloud size={16} /> : <IconCloudOff size={16} />}
-                {catalogosOnline ? 'Conectado a Google Sheets' : 'Sin conexión - usando datos demo'}
+                {catalogosOnline ? 'Conectado a Google Sheets' : 'Sin conexión'}
               </div>
 
               <div className="mt-4">
                 <h3 className="font-semibold text-slate-700 mb-2">Datos cargados</h3>
                 <div className="text-sm text-slate-600 grid grid-cols-2 gap-2">
                   <div>Empleados: {empleados.length}</div>
-                  <div>Números de parte: {skus.length}</div>
+                  <div>Nº parte: {skus.length}</div>
                   <div>Proveedores: {proveedores.length}</div>
                   <div>Almacenes: {almacenes.length}</div>
                   <div className="col-span-2">Solicitudes locales: {solicitudes.length}</div>
@@ -337,171 +427,326 @@
         );
       }
 
+      // ============ MODAL SELECCIÓN ALMACÉN ============
+      if (modalAlmacen) {
+        return (
+          <div className="min-h-screen bg-white">
+            <div className="bg-slate-800 text-white p-4 flex items-center gap-3 sticky top-0 z-10">
+              <button onClick={() => setModalAlmacen(null)} className="p-2 -ml-2"><IconBack size={22} /></button>
+              <h2 className="text-lg font-semibold">
+                Almacén {modalAlmacen === 'origen' ? 'ORIGEN' : 'DESTINO'}
+              </h2>
+            </div>
+            <div className="p-2">
+              {almacenes.map((a, i) => {
+                const disabled = modalAlmacen === 'destino' && a === origen;
+                return (
+                  <button key={i}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (modalAlmacen === 'origen') setOrigen(a); else setDestino(a);
+                      setModalAlmacen(null);
+                    }}
+                    className={`w-full text-left p-5 my-2 rounded-xl border-2 text-lg font-medium ${
+                      disabled ? 'bg-slate-100 text-slate-300 border-slate-100' :
+                      (modalAlmacen === 'origen' ? origen : destino) === a
+                        ? 'bg-slate-800 text-white border-slate-800'
+                        : 'bg-white border-slate-200 active:bg-slate-100'
+                    }`}>
+                    {a}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
+      // ============ PANTALLA BUSCAR SKU ============
+      if (pantalla === 'buscar_sku') {
+        return (
+          <div className="min-h-screen bg-slate-50">
+            <div className="bg-slate-800 text-white p-4 flex items-center gap-3 sticky top-0 z-10">
+              <button onClick={() => { limpiarPartidaActual(); setPantalla('solicitud'); }} className="p-2 -ml-2">
+                <IconBack size={22} />
+              </button>
+              <h2 className="text-lg font-semibold">Agregar partida</h2>
+            </div>
+
+            <div className="p-4">
+              {!skuSeleccionado ? (
+                <>
+                  <div className="relative mb-3">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><IconSearch /></div>
+                    <input type="text" value={skuBusqueda} onChange={(e) => setSkuBusqueda(e.target.value)}
+                      placeholder="Buscar por código o descripción..." autoFocus
+                      className="w-full pl-12 pr-4 py-4 border-2 border-slate-300 rounded-xl text-base" />
+                  </div>
+                  <div className="space-y-2">
+                    {skuBusqueda && skusFiltrados.length === 0 && (
+                      <div className="p-4 text-center text-slate-500">Sin resultados</div>
+                    )}
+                    {skusFiltrados.map((s, i) => (
+                      <button key={i} onClick={() => setSkuSeleccionado(s)}
+                        className="w-full text-left p-4 bg-white border-2 border-slate-200 active:bg-slate-100 rounded-xl">
+                        <div className="font-semibold text-base text-slate-800">{s.codigo}</div>
+                        <div className="text-sm text-slate-600 mt-1">{s.descripcion}</div>
+                      </button>
+                    ))}
+                    {!skuBusqueda && (
+                      <div className="text-center text-slate-400 py-12">
+                        Escribe para buscar ({skus.length} disponibles)
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-4 bg-slate-800 text-white rounded-xl mb-4">
+                    <div className="font-bold text-lg">{skuSeleccionado.codigo}</div>
+                    <div className="text-sm text-slate-300 mt-1">{skuSeleccionado.descripcion}</div>
+                    <button onClick={() => setSkuSeleccionado(null)}
+                      className="mt-3 text-xs px-3 py-1 border border-slate-600 rounded">Cambiar</button>
+                  </div>
+
+                  <label className="block text-base font-medium text-slate-700 mb-2">Cantidad a mover</label>
+                  <input type="number" inputMode="decimal" step="0.01" min="0"
+                    value={cantidadPartida} onChange={(e) => setCantidadPartida(e.target.value)}
+                    placeholder="0" autoFocus
+                    className="w-full px-4 py-4 border-2 border-slate-300 rounded-xl text-xl mb-4" />
+
+                  <label className="block text-base font-medium text-slate-700 mb-2">Saldo en origen después</label>
+                  <input type="number" inputMode="decimal" step="0.01" min="0"
+                    value={saldoPartida} onChange={(e) => setSaldoPartida(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-4 py-4 border-2 border-slate-300 rounded-xl text-xl mb-2" />
+                  <div className="text-xs text-slate-500 mb-4">Cuánto queda físicamente después de mover</div>
+
+                  <button onClick={agregarPartida}
+                    className="w-full bg-green-600 active:bg-green-800 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 text-lg">
+                    <IconPlus size={22} /> Agregar a la solicitud
+                  </button>
+                </>
+              )}
+            </div>
+            {mensaje && <Notificacion mensaje={mensaje} />}
+          </div>
+        );
+      }
+
+      // ============ APP PRINCIPAL ============
       return (
-        <div className="min-h-screen bg-slate-100">
-          <div className="bg-slate-800 text-white shadow-lg">
-            <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <IconPackage size={24} />
-                <div>
-                  <div className="font-bold">MAKEN METAL</div>
-                  <div className="text-xs text-slate-300">{empleadoNum} - {empleadoNombre}</div>
+        <div className="min-h-screen bg-slate-100 pb-24">
+          <div className="bg-slate-800 text-white shadow-lg sticky top-0 z-10">
+            <div className="px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <IconPackage size={22} />
+                <div className="min-w-0">
+                  <div className="font-bold text-sm">MAKEN METAL</div>
+                  <div className="text-xs text-slate-300 truncate">{empleadoNum} · {empleadoNombre}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${catalogosOnline ? 'bg-green-700' : 'bg-slate-600'}`}>
                   {catalogosOnline ? <IconCloud size={12} /> : <IconCloudOff size={12} />}
                   {catalogosOnline ? 'Online' : 'Offline'}
                 </div>
-                <button onClick={() => setPantalla('config')} className="p-2 hover:bg-slate-700 rounded"><IconSettings size={18} /></button>
-                <button onClick={handleLogout} className="p-2 hover:bg-slate-700 rounded"><IconLogOut size={18} /></button>
+                <button onClick={handleLogout} className="p-2 active:bg-slate-700 rounded"><IconLogOut size={20} /></button>
               </div>
             </div>
-            <div className="max-w-4xl mx-auto px-4 flex gap-1">
+            <div className="px-2 flex gap-1">
               <button onClick={() => setPantalla('solicitud')}
-                className={`px-4 py-2 text-sm font-medium rounded-t ${pantalla === 'solicitud' ? 'bg-slate-100 text-slate-800' : 'text-slate-300 hover:text-white'}`}>
+                className={`flex-1 px-3 py-3 text-sm font-medium rounded-t-lg ${pantalla === 'solicitud' ? 'bg-slate-100 text-slate-800' : 'text-slate-300 active:bg-slate-700'}`}>
                 Nueva solicitud
               </button>
               <button onClick={() => setPantalla('mis_solicitudes')}
-                className={`px-4 py-2 text-sm font-medium rounded-t ${pantalla === 'mis_solicitudes' ? 'bg-slate-100 text-slate-800' : 'text-slate-300 hover:text-white'}`}>
+                className={`flex-1 px-3 py-3 text-sm font-medium rounded-t-lg ${pantalla === 'mis_solicitudes' ? 'bg-slate-100 text-slate-800' : 'text-slate-300 active:bg-slate-700'}`}>
                 Mis solicitudes ({misSolicitudes.length})
               </button>
             </div>
           </div>
 
-          <div className="max-w-4xl mx-auto p-4">
+          <div className="max-w-2xl mx-auto p-4">
             {pantalla === 'solicitud' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-bold text-slate-800 mb-4">Solicitud de transferencia</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">1. Almacén origen *</label>
-                    <select value={origen} onChange={(e) => setOrigen(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg">
-                      <option value="">Seleccionar...</option>
-                      {almacenes.map((a, i) => <option key={i} value={a}>{a}</option>)}
-                    </select>
+              <div className="space-y-4">
+                {/* ORIGEN */}
+                <button onClick={() => setModalAlmacen('origen')}
+                  className="w-full text-left bg-white border-2 border-slate-200 active:bg-slate-100 rounded-xl p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-1">1. Almacén origen</div>
+                  <div className={`text-base font-medium ${origen ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {origen || 'Tocar para seleccionar'}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">2. Almacén destino *</label>
-                    <select value={destino} onChange={(e) => setDestino(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg">
-                      <option value="">Seleccionar...</option>
-                      {almacenes.map((a, i) => <option key={i} value={a} disabled={a === origen}>{a}</option>)}
-                    </select>
-                  </div>
-                </div>
+                </button>
 
+                {/* DESTINO */}
+                <button onClick={() => setModalAlmacen('destino')}
+                  className="w-full text-left bg-white border-2 border-slate-200 active:bg-slate-100 rounded-xl p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-1">2. Almacén destino</div>
+                  <div className={`text-base font-medium ${destino ? 'text-slate-900' : 'text-slate-400'}`}>
+                    {destino || 'Tocar para seleccionar'}
+                  </div>
+                </button>
+
+                {/* PROVEEDOR */}
                 {esDestinoExterno && (
-                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Proveedor / maquilador externo *</label>
+                  <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                    <div className="text-xs font-semibold text-amber-900 uppercase mb-2">Proveedor externo</div>
                     <select value={proveedorSel} onChange={(e) => setProveedorSel(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg mb-2">
+                      className="w-full px-3 py-3 border-2 border-amber-300 rounded-xl text-base bg-white">
                       <option value="">Seleccionar...</option>
                       {proveedores.map((p, i) => <option key={i} value={p}>{p}</option>)}
-                      <option value="__otro__">+ Otro (capturar manualmente)</option>
+                      <option value="__otro__">+ Otro (capturar)</option>
                     </select>
                     {proveedorSel === '__otro__' && (
                       <input type="text" value={proveedorLibre} onChange={(e) => setProveedorLibre(e.target.value)}
-                        placeholder="Nombre del proveedor externo"
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                        placeholder="Nombre del proveedor"
+                        className="w-full mt-2 px-3 py-3 border-2 border-amber-300 rounded-xl" />
                     )}
                   </div>
                 )}
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">3. Número de parte *</label>
-                  {skuSeleccionado ? (
-                    <div className="flex items-center justify-between p-3 bg-slate-800 text-white rounded-lg">
-                      <div>
-                        <div className="font-semibold">{skuSeleccionado.codigo}</div>
-                        <div className="text-sm text-slate-300">{skuSeleccionado.descripcion}</div>
-                      </div>
-                      <button onClick={() => { setSkuSeleccionado(null); setSkuBusqueda(''); }}
-                        className="text-slate-300 text-sm px-3 py-1 border border-slate-600 rounded">Cambiar</button>
-                    </div>
-                  ) : (
-                    <>
-                      <input type="text" value={skuBusqueda} onChange={(e) => setSkuBusqueda(e.target.value)}
-                        placeholder="Buscar por código o descripción..."
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
-                      {skuBusqueda && (
-                        <div className="mt-1 border border-slate-200 rounded-lg max-h-56 overflow-y-auto bg-white">
-                          {skusFiltrados.length === 0 ? (
-                            <div className="p-3 text-sm text-slate-500">Sin resultados</div>
-                          ) : skusFiltrados.map((s, i) => (
-                            <button key={i} onClick={() => { setSkuSeleccionado(s); setSkuBusqueda(''); }}
-                              className="w-full text-left p-3 hover:bg-slate-100 border-b border-slate-100 last:border-0">
-                              <div className="font-semibold text-sm">{s.codigo}</div>
-                              <div className="text-xs text-slate-600">{s.descripcion}</div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
+                {/* URGENCIA */}
+                <div className="bg-white border-2 border-slate-200 rounded-xl p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-3">3. Urgencia</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setUrgencia('NORMAL')}
+                      className={`py-4 rounded-xl font-semibold border-2 flex items-center justify-center gap-2 ${
+                        urgencia === 'NORMAL' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-200'
+                      }`}>
+                      <IconClock size={18} /> Normal
+                    </button>
+                    <button onClick={() => setUrgencia('URGENTE')}
+                      className={`py-4 rounded-xl font-semibold border-2 flex items-center justify-center gap-2 ${
+                        urgencia === 'URGENTE' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-700 border-slate-200'
+                      }`}>
+                      <IconFlame size={18} /> Urgente
+                    </button>
+                  </div>
+                  {urgencia === 'URGENTE' && (
+                    <div className="text-xs text-red-700 mt-2">🔴 Se notificará a oficinas por correo para atención inmediata</div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">4. Cantidad a mover *</label>
-                    <input type="number" step="0.01" min="0" value={cantidad} onChange={(e) => setCantidad(e.target.value)}
-                      placeholder="0" className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                {/* PARTIDAS */}
+                <div className="bg-white border-2 border-slate-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-semibold text-slate-500 uppercase">4. Partidas ({partidas.length})</div>
+                    <button onClick={() => setPantalla('buscar_sku')}
+                      className="bg-slate-800 active:bg-slate-950 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-1 font-medium">
+                      <IconPlus size={16} /> Agregar
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">5. Saldo en origen después *</label>
-                    <input type="number" step="0.01" min="0" value={saldoOrigen} onChange={(e) => setSaldoOrigen(e.target.value)}
-                      placeholder="0" className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
-                    <div className="text-xs text-slate-500 mt-1">Cuánto queda físicamente después de mover</div>
-                  </div>
+                  {partidas.length === 0 ? (
+                    <div className="text-center text-slate-400 py-6 text-sm">Aún no hay partidas agregadas</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {partidas.map((p, i) => (
+                        <div key={i} className="border border-slate-200 rounded-lg p-3 flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm text-slate-800">{p.codigo}</div>
+                            <div className="text-xs text-slate-600 truncate">{p.descripcion}</div>
+                            <div className="text-sm mt-1">
+                              <span className="font-semibold">Cant: {p.cantidad}</span>
+                              <span className="text-slate-500 ml-2">Queda: {p.saldoOrigen}</span>
+                            </div>
+                          </div>
+                          <button onClick={() => eliminarPartida(i)} className="p-2 text-red-600 active:bg-red-50 rounded">
+                            <IconTrash size={18} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">6. Comentarios</label>
+                {/* COMENTARIOS */}
+                <div className="bg-white border-2 border-slate-200 rounded-xl p-4">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-2">5. Comentarios (opcional)</div>
                   <textarea value={comentarios} onChange={(e) => setComentarios(e.target.value)} rows={3}
-                    placeholder="Información adicional (opcional)"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg resize-none" />
+                    placeholder="Información adicional..."
+                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl resize-none" />
                 </div>
 
-                <div className="mt-6 flex gap-3">
-                  <button onClick={handleEnviar} disabled={enviando}
-                    className="flex-1 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2">
-                    {enviando ? <><IconRefresh className="animate-spin" /> Enviando...</> : <><IconSend /> Enviar solicitud</>}
-                  </button>
-                  <button onClick={limpiarFormulario}
-                    className="px-6 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50">Limpiar</button>
-                </div>
+                {/* ENVIAR */}
+                <button onClick={handleEnviar} disabled={enviando || partidas.length === 0}
+                  className={`w-full font-bold py-5 rounded-xl flex items-center justify-center gap-2 text-lg shadow-lg ${
+                    urgencia === 'URGENTE'
+                      ? 'bg-red-600 active:bg-red-800 disabled:bg-slate-400 text-white'
+                      : 'bg-slate-800 active:bg-slate-950 disabled:bg-slate-400 text-white'
+                  }`}>
+                  {enviando ? <><IconRefresh className="animate-spin" /> Enviando...</> :
+                    <><IconSend size={22} /> Enviar solicitud {urgencia === 'URGENTE' && '🔴'}</>}
+                </button>
+
+                <button onClick={limpiarFormulario}
+                  className="w-full py-3 text-slate-600 active:text-slate-900 text-sm">
+                  Limpiar formulario
+                </button>
               </div>
             )}
 
             {pantalla === 'mis_solicitudes' && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-lg font-bold text-slate-800 mb-4">Mis solicitudes</h2>
+              <div>
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h2 className="text-lg font-bold text-slate-800">Últimas {MAX_HISTORIAL}</h2>
+                  <button onClick={actualizarEstados} disabled={actualizandoEstados}
+                    className="flex items-center gap-2 bg-white border-2 border-slate-200 active:bg-slate-100 text-slate-700 text-sm px-3 py-2 rounded-lg font-medium">
+                    <IconRefresh size={16} className={actualizandoEstados ? 'animate-spin' : ''} />
+                    Actualizar
+                  </button>
+                </div>
+
                 {misSolicitudes.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <IconPackage size={40} className="mx-auto mb-2 opacity-30" />
+                  <div className="text-center py-16 text-slate-400">
+                    <IconPackage size={48} className="mx-auto mb-2 opacity-30" />
                     <p>No tienes solicitudes aún</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {misSolicitudes.map((s, i) => (
-                      <div key={i} className={`border rounded-lg p-4 ${s.procesado ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'}`}>
-                        <div className="flex items-start justify-between mb-2">
+                      <div key={i} className={`bg-white rounded-xl p-4 border-2 ${
+                        s.procesado ? 'border-green-300' : s.urgencia === 'URGENTE' ? 'border-red-300' : 'border-amber-200'
+                      }`}>
+                        <div className="flex items-start justify-between mb-2 gap-2">
                           <div>
                             <div className="font-bold text-slate-800">{s.folio}</div>
                             <div className="text-xs text-slate-500">{s.fechaHora}</div>
                           </div>
-                          <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded ${s.procesado ? 'bg-green-600 text-white' : 'bg-amber-500 text-white'}`}>
-                            {s.procesado ? <><IconCheck size={12} /> Procesado</> : <><IconClock size={12} /> Pendiente</>}
+                          <div className="flex gap-1 flex-wrap justify-end">
+                            {s.urgencia === 'URGENTE' && (
+                              <div className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded bg-red-600 text-white">
+                                <IconFlame size={12} /> URGENTE
+                              </div>
+                            )}
+                            <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded ${
+                              s.procesado ? 'bg-green-600 text-white' : 'bg-amber-500 text-white'
+                            }`}>
+                              {s.procesado ? <><IconCheck size={12} /> Procesado</> : <><IconClock size={12} /> Pendiente</>}
+                            </div>
                           </div>
                         </div>
                         <div className="text-sm space-y-1">
-                          <div><span className="text-slate-500">Parte:</span> <span className="font-medium">{s.codigo}</span> — {s.descripcion}</div>
-                          <div><span className="text-slate-500">Cantidad:</span> <span className="font-medium">{s.cantidad}</span> <span className="text-slate-400">(queda: {s.saldoOrigen})</span></div>
-                          <div><span className="text-slate-500">Ruta:</span> {s.origen} → {s.destino}</div>
-                          {s.proveedorExterno && <div><span className="text-slate-500">Proveedor:</span> {s.proveedorExterno}</div>}
-                          {s.comentarios && <div className="text-slate-600 italic">"{s.comentarios}"</div>}
+                          <div className="text-slate-700">
+                            <span className="text-slate-500">Ruta:</span> {s.origen} → {s.destino}
+                          </div>
+                          {s.proveedorExterno && (
+                            <div className="text-slate-700"><span className="text-slate-500">Proveedor:</span> {s.proveedorExterno}</div>
+                          )}
+                          <div className="pt-2 border-t border-slate-100">
+                            <div className="text-xs font-semibold text-slate-500 uppercase mb-1">
+                              {(s.partidas || []).length} partida(s)
+                            </div>
+                            {(s.partidas || []).map((p, j) => (
+                              <div key={j} className="text-sm py-1">
+                                <span className="font-medium">{p.codigo}</span>
+                                <span className="text-slate-500"> · Cant {p.cantidad} · Queda {p.saldoOrigen}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {s.comentarios && <div className="text-slate-600 italic text-xs mt-2">"{s.comentarios}"</div>}
+                          {s.procesado && s.fechaProcesado && (
+                            <div className="text-green-700 text-xs mt-1">Procesado: {s.fechaProcesado}</div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -519,9 +764,9 @@
       const colores = { ok: 'bg-green-600', error: 'bg-red-600', warn: 'bg-amber-600' };
       const iconos = { ok: <IconCheck size={18} />, error: <IconAlert size={18} />, warn: <IconAlert size={18} /> };
       return (
-        <div className={`fixed bottom-4 right-4 ${colores[mensaje.tipo]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 max-w-md z-50`}>
+        <div className={`fixed bottom-4 left-4 right-4 ${colores[mensaje.tipo]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 z-50 max-w-md mx-auto`}>
           {iconos[mensaje.tipo]}
-          <span className="text-sm">{mensaje.texto}</span>
+          <span className="text-sm font-medium">{mensaje.texto}</span>
         </div>
       );
     }
