@@ -30,6 +30,9 @@
     const PIN_ADMIN = '9473';
     const MAX_HISTORIAL = 10;
 
+    // URL del Google Apps Script - hardcodeada para que funcione en cualquier celular sin configuración
+    const APPS_SCRIPT_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbwqK_c83G_CsDw0MQHrBV2lDo0n0-1rcHllPbuqHoBrOXlUmIf3Wj9OxQ4nKn3fkeQ/exec';
+
     // Iconos
     const Icon = ({ d, size = 18, className = '' }) => (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{d}</svg>
@@ -100,7 +103,9 @@
 
       const inicializar = async () => {
         setLoading(true);
-        const url = storage.get('config_url') || '';
+        // La URL ya viene hardcodeada. Permite override si admin la cambió vía config.
+        const urlGuardada = storage.get('config_url');
+        const url = urlGuardada && urlGuardada.trim() ? urlGuardada : APPS_SCRIPT_URL_DEFAULT;
         setConfigUrl(url);
         const sol = storage.get('solicitudes');
         if (sol) { try { setSolicitudes(JSON.parse(sol)); } catch (e) {} }
