@@ -106,7 +106,11 @@
       const [saldoPartida, setSaldoPartida] = useState('');
 
       // Selectores modales
-      const [modalAlmacen, setModalAlmacen] = useState(null); // 'origen' | 'destino' | null
+      const [modalAlmacen, setModalAlmacen] = useState(null); // ya no se usa, pero se mantiene por compatibilidad
+      const [busquedaOrigen, setBusquedaOrigen] = useState('');
+      const [busquedaDestino, setBusquedaDestino] = useState('');
+      const [mostrarListaOrigen, setMostrarListaOrigen] = useState(false);
+      const [mostrarListaDestino, setMostrarListaDestino] = useState(false);
 
       useEffect(() => { inicializar(); }, []);
 
@@ -229,8 +233,17 @@
       const limpiarFormulario = () => {
         setOrigen(''); setDestino(''); setProveedorSel(''); setProveedorLibre('');
         setUrgencia('NORMAL'); setComentarios(''); setPartidas([]);
+        setBusquedaOrigen(''); setBusquedaDestino('');
+        setMostrarListaOrigen(false); setMostrarListaDestino(false);
         limpiarPartidaActual();
       };
+
+      const almacenesFiltradosOrigen = almacenes.filter(a =>
+        a.toLowerCase().includes(busquedaOrigen.toLowerCase())
+      );
+      const almacenesFiltradosDestino = almacenes.filter(a =>
+        a.toLowerCase().includes(busquedaDestino.toLowerCase()) && a !== origen
+      );
 
       const limpiarPartidaActual = () => {
         setSkuBusqueda(''); setSkuSeleccionado(null);
@@ -483,41 +496,6 @@
         );
       }
 
-      // ============ MODAL SELECCIÓN ALMACÉN ============
-      if (modalAlmacen) {
-        return (
-          <div className="min-h-screen bg-white">
-            <div className="bg-slate-800 text-white p-4 flex items-center gap-3 sticky top-0 z-10">
-              <button onClick={() => setModalAlmacen(null)} className="p-2 -ml-2"><IconBack size={22} /></button>
-              <h2 className="text-lg font-semibold">
-                Almacén {modalAlmacen === 'origen' ? 'ORIGEN' : 'DESTINO'}
-              </h2>
-            </div>
-            <div className="p-2">
-              {almacenes.map((a, i) => {
-                const disabled = modalAlmacen === 'destino' && a === origen;
-                return (
-                  <button key={i}
-                    disabled={disabled}
-                    onClick={() => {
-                      if (modalAlmacen === 'origen') setOrigen(a); else setDestino(a);
-                      setModalAlmacen(null);
-                    }}
-                    className={`w-full text-left p-5 my-2 rounded-xl border-2 text-lg font-medium ${
-                      disabled ? 'bg-slate-100 text-slate-300 border-slate-100' :
-                      (modalAlmacen === 'origen' ? origen : destino) === a
-                        ? 'bg-slate-800 text-white border-slate-800'
-                        : 'bg-white border-slate-200 active:bg-slate-100'
-                    }`}>
-                    {a}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      }
-
       // ============ PANTALLA BUSCAR SKU + CAPTURA PARTIDA ============
       if (pantalla === 'buscar_sku') {
         return (
@@ -638,22 +616,84 @@
             {pantalla === 'solicitud' && (
               <div className="space-y-4">
                 {/* ORIGEN */}
-                <button onClick={() => setModalAlmacen('origen')}
-                  className="w-full text-left bg-white border-2 border-slate-200 active:bg-slate-100 rounded-xl p-4">
-                  <div className="text-xs font-semibold text-slate-500 uppercase mb-1">1. Almacén origen</div>
-                  <div className={`text-base font-medium ${origen ? 'text-slate-900' : 'text-slate-400'}`}>
-                    {origen || 'Tocar para seleccionar'}
-                  </div>
-                </button>
+                <div className="bg-white border-2 border-slate-200 rounded-xl p-4 relative">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-2">1. Almacén origen</div>
+                  {origen ? (
+                    <div className="flex items-center justify-between gap-2 p-3 bg-slate-800 text-white rounded-lg">
+                      <div className="font-medium truncate">{origen}</div>
+                      <button onClick={() => { setOrigen(''); setBusquedaOrigen(''); setMostrarListaOrigen(true); }}
+                        className="shrink-0 text-xs px-3 py-1 border border-slate-600 rounded active:bg-slate-700">
+                        Cambiar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><IconSearch size={18} /></div>
+                        <input type="text" value={busquedaOrigen}
+                          onChange={(e) => { setBusquedaOrigen(e.target.value); setMostrarListaOrigen(true); }}
+                          onFocus={() => setMostrarListaOrigen(true)}
+                          placeholder="Escribe o toca para seleccionar..."
+                          className="w-full pl-10 pr-4 py-3 border-2 border-slate-300 rounded-lg text-base" />
+                      </div>
+                      {mostrarListaOrigen && (
+                        <div className="mt-2 border-2 border-slate-200 rounded-lg max-h-64 overflow-y-auto bg-white">
+                          {almacenesFiltradosOrigen.length === 0 ? (
+                            <div className="p-3 text-sm text-slate-500">Sin resultados</div>
+                          ) : (
+                            almacenesFiltradosOrigen.map((a, i) => (
+                              <button key={i}
+                                onClick={() => { setOrigen(a); setBusquedaOrigen(''); setMostrarListaOrigen(false); }}
+                                className="w-full text-left p-3 border-b border-slate-100 last:border-0 active:bg-slate-100 text-base">
+                                {a}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
                 {/* DESTINO */}
-                <button onClick={() => setModalAlmacen('destino')}
-                  className="w-full text-left bg-white border-2 border-slate-200 active:bg-slate-100 rounded-xl p-4">
-                  <div className="text-xs font-semibold text-slate-500 uppercase mb-1">2. Almacén destino</div>
-                  <div className={`text-base font-medium ${destino ? 'text-slate-900' : 'text-slate-400'}`}>
-                    {destino || 'Tocar para seleccionar'}
-                  </div>
-                </button>
+                <div className="bg-white border-2 border-slate-200 rounded-xl p-4 relative">
+                  <div className="text-xs font-semibold text-slate-500 uppercase mb-2">2. Almacén destino</div>
+                  {destino ? (
+                    <div className="flex items-center justify-between gap-2 p-3 bg-slate-800 text-white rounded-lg">
+                      <div className="font-medium truncate">{destino}</div>
+                      <button onClick={() => { setDestino(''); setBusquedaDestino(''); setMostrarListaDestino(true); }}
+                        className="shrink-0 text-xs px-3 py-1 border border-slate-600 rounded active:bg-slate-700">
+                        Cambiar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><IconSearch size={18} /></div>
+                        <input type="text" value={busquedaDestino}
+                          onChange={(e) => { setBusquedaDestino(e.target.value); setMostrarListaDestino(true); }}
+                          onFocus={() => setMostrarListaDestino(true)}
+                          placeholder="Escribe o toca para seleccionar..."
+                          className="w-full pl-10 pr-4 py-3 border-2 border-slate-300 rounded-lg text-base" />
+                      </div>
+                      {mostrarListaDestino && (
+                        <div className="mt-2 border-2 border-slate-200 rounded-lg max-h-64 overflow-y-auto bg-white">
+                          {almacenesFiltradosDestino.length === 0 ? (
+                            <div className="p-3 text-sm text-slate-500">Sin resultados</div>
+                          ) : (
+                            almacenesFiltradosDestino.map((a, i) => (
+                              <button key={i}
+                                onClick={() => { setDestino(a); setBusquedaDestino(''); setMostrarListaDestino(false); }}
+                                className="w-full text-left p-3 border-b border-slate-100 last:border-0 active:bg-slate-100 text-base">
+                                {a}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
                 {/* PROVEEDOR */}
                 {esDestinoExterno && (
