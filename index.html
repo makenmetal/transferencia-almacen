@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#1e293b" />
   <title>MAKEN METAL - Transferencias</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- CDNs con versiones FIJAS para garantizar estabilidad. No cambiar sin probar. -->
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.0/babel.min.js"></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
   <style>
@@ -18,7 +19,30 @@
   </style>
 </head>
 <body class="bg-slate-100">
-  <div id="root"></div>
+  <div id="root">
+    <!-- Fallback visible si algún CDN no carga. Cuando React monta, esto se reemplaza. -->
+    <div id="fallback" style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f1f5f9;padding:20px">
+      <div style="background:white;padding:24px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:400px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">⏳</div>
+        <h2 style="margin:0 0 8px;color:#1e293b;font-size:18px">Cargando aplicación...</h2>
+        <p style="margin:0;color:#64748b;font-size:14px">Si esta pantalla persiste más de 30 segundos, verifica tu conexión a internet o contacta a soporte.</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Si después de 15 segundos React no montó, mostrar mensaje de error
+    setTimeout(function() {
+      var fb = document.getElementById('fallback');
+      if (fb) {
+        fb.innerHTML = '<div style="background:white;padding:24px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:400px;text-align:center">' +
+          '<div style="font-size:48px;margin-bottom:12px">⚠️</div>' +
+          '<h2 style="margin:0 0 8px;color:#dc2626;font-size:18px">No se pudo cargar la app</h2>' +
+          '<p style="margin:0 0 16px;color:#64748b;font-size:14px">Verifica tu conexión e intenta recargar.</p>' +
+          '<button onclick="location.reload()" style="background:#1e293b;color:white;border:none;padding:12px 24px;border-radius:8px;font-size:14px;cursor:pointer">Recargar</button>' +
+          '</div>';
+      }
+    }, 15000);
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
