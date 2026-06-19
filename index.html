@@ -20,7 +20,7 @@
 <body class="bg-slate-100">
   <div id="root"></div>
 
-  <script type="text/babel" data-type="module">
+  <script type="text/babel" data-presets="react">
     const { useState, useEffect } = React;
 
     const ALMACENES_DEFAULT = ['01 MATERIA PRIMA', '02 PROCESO DE MAQUINADO', '03 PROCESO EXTERNO', '04 PROCESO DE ACABADO', '05 ENSAMBLES', '06 PRODUCTO TERMINADO', '10 SCRAP'];
@@ -139,19 +139,19 @@
           const res = await fetch(url);
           if (!res.ok) throw new Error('No se pudo leer Sheet');
           const data = await res.json();
-          if (data.empleados?.length) {
+          if (data.empleados && data.empleados.length) {
             const m = data.empleados.filter(e => e.Numero).map(e => ({ numero: String(e.Numero).trim(), nombre: String(e.Nombre || '').trim() }));
             if (m.length) setEmpleados(m);
           }
-          if (data.numerosParte?.length) {
+          if (data.numerosParte && data.numerosParte.length) {
             const m = data.numerosParte.filter(s => s.Codigo).map(s => ({ codigo: String(s.Codigo).trim(), descripcion: String(s.Descripcion || '').trim() }));
             if (m.length) setSkus(m);
           }
-          if (data.proveedores?.length) {
+          if (data.proveedores && data.proveedores.length) {
             const m = data.proveedores.filter(p => p.Nombre).map(p => String(p.Nombre).trim());
             if (m.length) setProveedores(m);
           }
-          if (data.almacenes?.length) {
+          if (data.almacenes && data.almacenes.length) {
             const m = data.almacenes.filter(a => a.Almacen).map(a => String(a.Almacen).trim());
             if (m.length) setAlmacenes(m);
           }
